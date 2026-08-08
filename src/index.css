@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  --animate-fade-in-up: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in: fade-in 0.3s ease-out forwards;
+  --animate-shake: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  --animate-scale-x: scale-x 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  --animate-spin: spin 0.7s linear infinite;
+
+  @keyframes scale-x {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60%  { transform: translate3d(4px, 0, 0); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-18px); }
+  }
+}
+
+/* ─── Design tokens ──────────────────────────────────────────── */
+:root {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+
+  /* Light-mode tokens */
+  --bg-base:        #ffffff;
+  --bg-subtle:      #f8fafc;
+  --bg-card:        #ffffff;
+  --border-color:   #e8edf4;
+  --text-primary:   #111827;
+  --text-secondary: #6b7280;
+  --text-muted:     #9ca3af;
+  --input-bg:       #ffffff;
+  --input-border:   #d1d8e0;
+  --nav-hover-bg:   #f1f5f9;
+  --shadow-card:    0 4px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Dark-mode tokens */
+html.dark {
+  --bg-base:        #0d0f14;
+  --bg-subtle:      #12151e;
+  --bg-card:        #080a0e;   /* near-black so dark logo blends seamlessly */
+  --border-color:   #1e2535;
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --input-bg:       #0f1219;
+  --input-border:   #1e2535;
+  --nav-hover-bg:   #141824;
+  --shadow-card:    0 4px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* ─── Base ───────────────────────────────────────────────────── */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ─── Global dark-aware utilities ────────────────────────────── */
+.cc-bg-base        { background-color: var(--bg-base); }
+.cc-bg-subtle      { background-color: var(--bg-subtle); }
+.cc-bg-card        { background-color: var(--bg-card); }
+.cc-border         { border-color: var(--border-color); }
+.cc-text-primary   { color: var(--text-primary); }
+.cc-text-secondary { color: var(--text-secondary); }
+.cc-text-muted     { color: var(--text-muted); }
+.cc-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+.cc-input::placeholder { color: var(--text-muted); }
+.cc-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
