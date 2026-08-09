@@ -11,6 +11,7 @@ export interface Question {
   id: string;
   title: string;
   description: string;
+  difficulty?: string;
   runTime: number; // in milliseconds
   testCases: TestCase[];
 }
@@ -52,6 +53,7 @@ export const mapBackendQuestion = (bq: any): Question => {
     id: String(bq.id),
     title: bq.title,
     description: bq.description,
+    difficulty: bq.difficulty,
     runTime: bq.runTime ?? 5000, // in milliseconds
     testCases,
   };

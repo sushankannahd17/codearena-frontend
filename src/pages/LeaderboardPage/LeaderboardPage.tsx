@@ -48,7 +48,7 @@ function formatDuration(startIso: string, endIso: string): string {
   return `${m}m`;
 }
 
-function rankEntries(entries: LeaderboardEntry[], totalQuestions: number): LeaderboardEntry[] {
+function rankEntries(entries: LeaderboardEntry[]): LeaderboardEntry[] {
   return [...entries].sort((a, b) => {
     // More solved = fewer remaining questions = better rank
     const aRemaining = (a.questions ?? []).length;
@@ -357,7 +357,7 @@ export default function LeaderboardPage() {
   };
 
   const totalQuestions    = contestMeta?.questions?.length ?? 0;
-  const ranked            = rankEntries(entries, totalQuestions);
+  const ranked            = rankEntries(entries);
   const completedCount    = entries.filter((e) => deriveStatus(e.questions) === "Completed").length;
   const notCompletedCount = entries.filter((e) => deriveStatus(e.questions) === "Not Completed").length;
   const displayName       = contestMeta?.contestname ?? contestName ?? "Contest";

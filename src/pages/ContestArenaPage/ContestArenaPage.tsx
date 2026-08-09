@@ -890,7 +890,7 @@ export default function ContestArenaPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col divide-y divide-[var(--border-color)]">
-                    {unsolvedQuestions.map((q, idx) => {
+                    {unsolvedQuestions.map((q) => {
                       return (
                         <button
                           key={q.id}
