@@ -159,7 +159,7 @@ export default function HeaderNav() {
       }}
       className="w-full border-b sticky top-0 z-50 transition-colors duration-300"
     >
-      <div className="max-w-6xl mx-auto px-6 h-[68px] flex items-center justify-between">
+      <div className="w-full px-6 h-[68px] flex items-center justify-between">
 
         {/* Logo */}
         <button

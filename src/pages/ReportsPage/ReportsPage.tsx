@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { reportsApi } from "../../services/api";
 
@@ -14,7 +14,8 @@ interface ContestOver {
   userEndDate: string | null;
   submitCount: number;
   questions: { id: number; title: string }[];
-  submissions: { id: number; question: { id: number; title: string } }[];
+  submissions: { id: number; verdict: string; question: { id: number; title: string } }[];
+  contestOver?: boolean;
 }
 
 function formatDate(iso: string | null) {
@@ -119,19 +120,26 @@ export default function ReportsPage() {
       {!loading && !error && contests.length > 0 && (
         <div className="flex flex-col gap-3">
           {contests.map((contest) => {
-            const attempted = (contest.submissions ?? []).length;
+            const subs = contest.submissions ?? [];
+            const attempted = new Set(
+              subs
+                .filter((s) => s.verdict?.toLowerCase() === "accepted")
+                .map((s) => s.question?.id)
+            ).size;
             const total = (contest.questions ?? []).length;
             return (
               <div
                 key={contest.id}
                 className="flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all duration-200"
-                style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-color)" }}
+                style={{ backgroundColor: "var(--bg-card)", borderColor: contest.contestOver === false ? "rgba(245,158,11,0.3)" : "var(--border-color)" }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(37,99,235,0.3)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(37,99,235,0.06)";
+                  if (contest.contestOver !== false) {
+                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(37,99,235,0.3)";
+                    (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(37,99,235,0.06)";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "var(--border-color)";
+                  (e.currentTarget as HTMLElement).style.borderColor = contest.contestOver === false ? "rgba(245,158,11,0.3)" : "var(--border-color)";
                   (e.currentTarget as HTMLElement).style.boxShadow = "none";
                 }}
               >
@@ -144,33 +152,70 @@ export default function ReportsPage() {
                       <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
                         {formatDate(contest.startDate)} &mdash; {formatDate(contest.endDate)}
                       </span>
-                      <span
-                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: "rgba(37,99,235,0.08)", color: "#2563eb" }}
-                      >
-                        {attempted}/{total} solved
-                      </span>
-                      <span
-                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: "rgba(16,185,129,0.1)", color: "#10b981" }}
-                      >
-                        Completed
-                      </span>
+                      {contest.contestOver === false ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: "rgba(245,158,11,0.12)", color: "#f59e0b" }}
+                        >
+                          <span
+                            style={{
+                              width: "6px",
+                              height: "6px",
+                              borderRadius: "50%",
+                              backgroundColor: "#f59e0b",
+                              display: "inline-block",
+                              animation: "pulse 1.5s ease-in-out infinite",
+                            }}
+                          />
+                          Still Ongoing
+                        </span>
+                      ) : (
+                        <>
+                          {attempted === total && total > 0 ? (
+                            <span
+                              className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: "rgba(16,185,129,0.1)", color: "#10b981" }}
+                            >
+                              Completed
+                            </span>
+                          ) : (
+                            <span
+                              className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: "rgba(239,68,68,0.08)", color: "#ef4444" }}
+                            >
+                              Not Completed
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <button
-                  id={`report-btn-${contest.id}`}
-                  onClick={() => handleSeeReport(contest)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shrink-0 transition-all duration-150 cursor-pointer"
-                  style={{ background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)", color: "white" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                >
-                  <ReportBarIcon />
-                  See Report
-                </button>
+                {contest.contestOver === false ? (
+                  <span
+                    className="text-[12px] font-semibold px-4 py-2 rounded-xl shrink-0"
+                    style={{
+                      backgroundColor: "rgba(245,158,11,0.08)",
+                      color: "#f59e0b",
+                      border: "1px solid rgba(245,158,11,0.25)",
+                    }}
+                  >
+                    Report Pending
+                  </span>
+                ) : (
+                  <button
+                    id={`report-btn-${contest.id}`}
+                    onClick={() => handleSeeReport(contest)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shrink-0 transition-all duration-150 cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)", color: "white" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                  >
+                    <ReportBarIcon />
+                    See Report
+                  </button>
+                )}
               </div>
             );
           })}

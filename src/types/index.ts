@@ -73,6 +73,7 @@ export interface ContestQuestion {
   updatedAt: string;
   examples?: any[];
   tc?: any[];
+  runTime?: number; // in milliseconds
   user?: ContestUser;
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useQuestions } from "../../hooks/useQuestions";
@@ -29,6 +29,13 @@ export default function HomePage() {
       q.fetchQuestions();
     }
   };
+
+  // Auto-fetch when landing directly on /questions (e.g. page refresh)
+  useEffect(() => {
+    if (view === "questions" && q.questions.length === 0) {
+      q.fetchQuestions();
+    }
+  }, []);
 
   const goToDashboard = () => {
     navigate("/home");

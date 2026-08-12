@@ -21,6 +21,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { useContestTimer } from "../../hooks/useContestTimer";
 import { contestsApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { EditorView } from "@codemirror/view";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ interface ArenaQuestion {
   description: string;
   examples?: Example[];
   tc?: { id: number; input: string; output: string }[];
+  runTime?: number; // milliseconds
 }
 
 interface ArenaState {
@@ -228,6 +230,10 @@ export default function ContestArenaPage() {
   // ── Fullscreen exited modal (gentle prompt to return) ────────────────────
   const [showReturnFullscreenModal, setShowReturnFullscreenModal] = useState(false);
 
+  // Clipboard restriction toast
+  const [clipboardToast, setClipboardToast] = useState<string | null>(null);
+  const clipboardToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Listen for fullscreen changes → show "return to fullscreen" modal
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -243,6 +249,38 @@ export default function ContestArenaPage() {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, [timerData.isExpired, solved, questions.length]);
+
+  // ── Block copy / cut / paste during the contest ───────────────────────────
+  useEffect(() => {
+    const showToast = (msg: string) => {
+      if (clipboardToastTimerRef.current) clearTimeout(clipboardToastTimerRef.current);
+      setClipboardToast(msg);
+      clipboardToastTimerRef.current = setTimeout(() => setClipboardToast(null), 2500);
+    };
+
+    const blockCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      showToast("Copying is not allowed during the contest.");
+    };
+    const blockCut = (e: ClipboardEvent) => {
+      e.preventDefault();
+      showToast("Cutting is not allowed during the contest.");
+    };
+    const blockPaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      showToast("Pasting is not allowed during the contest.");
+    };
+
+    document.addEventListener("copy",  blockCopy);
+    document.addEventListener("cut",   blockCut);
+    document.addEventListener("paste", blockPaste);
+    return () => {
+      document.removeEventListener("copy",  blockCopy);
+      document.removeEventListener("cut",   blockCut);
+      document.removeEventListener("paste", blockPaste);
+      if (clipboardToastTimerRef.current) clearTimeout(clipboardToastTimerRef.current);
+    };
+  }, []);
 
   // ── Focus-lost violation state (window switch → warning + auto-logout) ────
   const [focusViolated, setFocusViolated] = useState(false);
@@ -955,14 +993,16 @@ export default function ContestArenaPage() {
                 </div>
               </div>
 
-              {/* Solved badge */}
+              {/* Solved badge only */}
               {solved.has(currentQuestion.id) && (
-                <span className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 px-2.5 py-0.5 rounded-full">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  Solved
-                </span>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 px-2.5 py-0.5 rounded-full">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Solved
+                  </span>
+                </div>
               )}
             </div>
 
@@ -1008,6 +1048,22 @@ export default function ContestArenaPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Runtime info — displayed after examples */}
+              {currentQuestion.runTime != null && (
+                <div>
+                  <span
+                    className="inline-flex items-center px-4 py-2 rounded-lg text-[13px] font-semibold"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#1e293b",
+                      border: "1px solid #cbd5e1",
+                    }}
+                  >
+                    Max Execution Time Limit: {currentQuestion.runTime} millisecs
+                  </span>
                 </div>
               )}
             </div>
@@ -1180,7 +1236,19 @@ export default function ContestArenaPage() {
                 height="100%"
                 theme={selectedTheme.theme}
                 readOnly={timer.isExpired}
-                extensions={[selectedLang.ext()]}
+                extensions={[
+                  selectedLang.ext(),
+                  // Block paste inside the editor (CodeMirror intercepts before document)
+                  EditorView.domEventHandlers({
+                    paste(e) {
+                      e.preventDefault();
+                      if (clipboardToastTimerRef.current) clearTimeout(clipboardToastTimerRef.current);
+                      setClipboardToast("Pasting is not allowed during the contest.");
+                      clipboardToastTimerRef.current = setTimeout(() => setClipboardToast(null), 2500);
+                      return true;
+                    },
+                  }),
+                ]}
                 onChange={(val) => setCode(currentQuestion.id, val)}
                 basicSetup={{
                   lineNumbers: true,
@@ -1416,6 +1484,43 @@ export default function ContestArenaPage() {
           <p className="text-[14px]" style={{ color: "var(--text-muted)" }}>No questions found.</p>
         </div>
       )}
+
+      {/* ── Clipboard restriction toast ────────────────────────────────────── */}
+      {clipboardToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "28px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            backgroundColor: "#1e1e1e",
+            border: "1px solid rgba(239,68,68,0.4)",
+            borderRadius: "12px",
+            padding: "10px 18px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            animation: "slideUpFade 0.25s ease",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "#f1f1f1", whiteSpace: "nowrap" }}>
+            {clipboardToast}
+          </span>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideUpFade {
+          from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

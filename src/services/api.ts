@@ -298,6 +298,29 @@ export const reportsApi = {
     a.remove();
     URL.revokeObjectURL(url);
   },
+
+  exportContestReport: async (contestId: string | number, contestName?: string): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/reports/export/${contestId}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.message ?? `Export failed (${res.status})`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const match = disposition.match(/filename\*?=["']?(?:UTF-8'')?([^"';\n]+)/i);
+    const safeName = contestName?.replace(/[^a-z0-9]/gi, "_") ?? `contest-${contestId}`;
+    a.download = match?.[1] ?? `${safeName}-report.docx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const api = {
